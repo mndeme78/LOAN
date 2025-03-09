@@ -1,5 +1,5 @@
 import { ReactNode, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { Navigate, useLocation } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Loader2 } from "lucide-react";
 
@@ -13,35 +13,32 @@ export default function ProtectedRoute({
   requiredRole,
 }: ProtectedRouteProps) {
   const { user, loading } = useAuth();
-  const navigate = useNavigate();
-
-  useEffect(() => {
-    if (!loading && !user) {
-      navigate("/login");
-    } else if (!loading && user && requiredRole && user.role !== requiredRole) {
-      // Redirect to appropriate dashboard based on role
-      if (user.role === "admin") {
-        navigate("/admin");
-      } else {
-        navigate("/dashboard");
-      }
-    }
-  }, [user, loading, navigate, requiredRole]);
+  const location = useLocation();
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-screen w-screen bg-background">
+      <div className="flex items-center justify-center h-screen">
         <Loader2 className="h-8 w-8 animate-spin text-primary" />
         <span className="ml-2 text-lg">Loading...</span>
       </div>
     );
   }
 
-  // If there's a required role and the user doesn't have it, don't render children
-  if (requiredRole && user?.role !== requiredRole) {
-    return null;
+  // If not logged in, redirect to login
+  if (!user) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If we're not loading and we have a user, render the children
-  return user ? <>{children}</> : null;
+  // If role is required and user doesn't have it, redirect to appropriate dashboard
+  if (requiredRole) {
+    if (requiredRole === "admin" && user.role !== "admin") {
+      return <Navigate to="/dashboard" replace />;
+    }
+
+    if (requiredRole === "user" && user.role !== "user") {
+      return <Navigate to="/admin" replace />;
+    }
+  }
+
+  return <>{children}</>;
 }
